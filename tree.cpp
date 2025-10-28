@@ -1,7 +1,5 @@
 #include <iostream>
-#include <vector>
 #include <string>
-#include <algorithm>
 
 using namespace std;
 
@@ -80,9 +78,12 @@ void deleteTree(TreeNode* root) {
     delete root;
 }
 
-// Функция для ввода последовательности
-vector<int> inputSequence() {
-    vector<int> sequence;
+int main() {
+    cout << "=== Проверка АВЛ-сбалансированности дерева ===" << endl;
+
+    // Ввод последовательности
+    int sequence[100];
+    int count = 0;
     int number;
 
     cout << "Введите последовательность целых чисел (0 для окончания ввода):" << endl;
@@ -102,34 +103,31 @@ vector<int> inputSequence() {
             break;
         }
 
-        sequence.push_back(number);
+        if (count < 100) {
+            sequence[count] = number;
+            count++;
+        } else {
+            cout << "Ошибка: превышен максимальный размер последовательности!" << endl;
+            break;
+        }
     }
 
-    return sequence;
-}
-
-int main() {
-    cout << "=== Проверка АВЛ-сбалансированности дерева ===" << endl;
-
-    // Ввод последовательности
-    vector<int> sequence = inputSequence();
-
-    if (sequence.empty()) {
+    if (count == 0) {
         cout << "Ошибка: последовательность не может быть пустой!" << endl;
         return 1;
     }
 
     // Построение дерева
     TreeNode* root = nullptr;
-    for (int value : sequence) {
-        root = insert(root, value);
+    for (int i = 0; i < count; i++) {
+        root = insert(root, sequence[i]);
     }
 
     // Вывод информации о дереве
     cout << "\n=== Построенное дерево ===" << endl;
     cout << "Последовательность: ";
-    for (int value : sequence) {
-        cout << value << " ";
+    for (int i = 0; i < count; i++) {
+        cout << sequence[i] << " ";
     }
     cout << endl;
 
