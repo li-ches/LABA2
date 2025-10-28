@@ -1,19 +1,18 @@
 #include <iostream>
-#include <vector>
 #include <string>
-#include <algorithm>
 
 using namespace std;
 
 // Структура для множества
 struct MySet {
-    vector<string> elements;
+    string elements[100];
+    int size = 0;
 };
 
 // Функция проверки наличия элемента в множестве
 bool contains(const MySet& set, const string& element) {
-    for (const auto& elem : set.elements) {
-        if (elem == element) {
+    for (int i = 0; i < set.size; ++i) {
+        if (set.elements[i] == element) {
             return true;
         }
     }
@@ -26,8 +25,13 @@ void addElement(MySet& set, const string& element) {
         cout << "Ошибка: нельзя добавить пустой элемент" << endl;
         return;
     }
+    if (set.size >= 100) {
+        cout << "Ошибка: множество переполнено" << endl;
+        return;
+    }
     if (!contains(set, element)) {
-        set.elements.push_back(element);
+        set.elements[set.size] = element;
+        set.size++;
         cout << "Элемент '" << element << "' добавлен в множество" << endl;
     } else {
         cout << "Элемент '" << element << "' уже есть в множестве" << endl;
@@ -36,9 +40,12 @@ void addElement(MySet& set, const string& element) {
 
 // Функция удаления элемента из множества
 void removeElement(MySet& set, const string& element) {
-    for (auto it = set.elements.begin(); it != set.elements.end(); ++it) {
-        if (*it == element) {
-            set.elements.erase(it);
+    for (int i = 0; i < set.size; ++i) {
+        if (set.elements[i] == element) {
+            for (int j = i; j < set.size - 1; ++j) {
+                set.elements[j] = set.elements[j + 1];
+            }
+            set.size--;
             cout << "Элемент '" << element << "' удален из множества" << endl;
             return;
         }
@@ -57,13 +64,13 @@ void checkElement(const MySet& set, const string& element) {
 
 // Функция вывода множества
 void printSet(const MySet& set, const string& name = "Множество") {
-    cout << name << " (" << set.elements.size() << " элементов): ";
-    if (set.elements.empty()) {
+    cout << name << " (" << set.size << " элементов): ";
+    if (set.size == 0) {
         cout << "пусто";
     } else {
-        for (size_t i = 0; i < set.elements.size(); ++i) {
+        for (int i = 0; i < set.size; ++i) {
             cout << set.elements[i];
-            if (i < set.elements.size() - 1) cout << ", ";
+            if (i < set.size - 1) cout << ", ";
         }
     }
     cout << endl;
@@ -73,9 +80,12 @@ void printSet(const MySet& set, const string& name = "Множество") {
 MySet unionSets(const MySet& set1, const MySet& set2) {
     MySet result = set1;
 
-    for (const auto& element : set2.elements) {
-        if (!contains(result, element)) {
-            result.elements.push_back(element);
+    for (int i = 0; i < set2.size; ++i) {
+        if (!contains(result, set2.elements[i])) {
+            if (result.size < 100) {
+                result.elements[result.size] = set2.elements[i];
+                result.size++;
+            }
         }
     }
 
@@ -86,9 +96,12 @@ MySet unionSets(const MySet& set1, const MySet& set2) {
 MySet intersectSets(const MySet& set1, const MySet& set2) {
     MySet result;
 
-    for (const auto& element : set1.elements) {
-        if (contains(set2, element)) {
-            result.elements.push_back(element);
+    for (int i = 0; i < set1.size; ++i) {
+        if (contains(set2, set1.elements[i])) {
+            if (result.size < 100) {
+                result.elements[result.size] = set1.elements[i];
+                result.size++;
+            }
         }
     }
 
@@ -99,9 +112,12 @@ MySet intersectSets(const MySet& set1, const MySet& set2) {
 MySet differenceSets(const MySet& set1, const MySet& set2) {
     MySet result;
 
-    for (const auto& element : set1.elements) {
-        if (!contains(set2, element)) {
-            result.elements.push_back(element);
+    for (int i = 0; i < set1.size; ++i) {
+        if (!contains(set2, set1.elements[i])) {
+            if (result.size < 100) {
+                result.elements[result.size] = set1.elements[i];
+                result.size++;
+            }
         }
     }
 
@@ -149,7 +165,7 @@ int main() {
         cout << "Выберите операцию: ";
 
         cin >> choice;
-        cin.ignore(); // Очистка буфера
+        cin.ignore();
 
         switch (choice) {
             case 1: {
