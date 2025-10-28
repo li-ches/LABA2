@@ -1,10 +1,9 @@
 #include <iostream>
 #include <string>
-#include <vector>
 
 using namespace std;
 
-// Узел двусвязного списка
+//узел двусвязного списка
 struct Node {
     int key;
     int value;
@@ -12,17 +11,17 @@ struct Node {
     Node* next;
 };
 
-// Структура LRU кэша
+//структура LRU кэша
 struct LRUCache {
     int capacity;
-    int size;
+    int size;//текущее кол-во элементов
     Node* head;
     Node* tail;
-    Node** keyMap; // Массив для хранения указателей на узлы по ключам
-    int maxKey;    // Максимальный возможный ключ
+    Node** keyMap; //массив для хранения указателей на узлы по ключам
+    int maxKey;    //максимальный возможный ключ
 };
 
-// Создание нового узла
+//создание нового узла
 Node* createNode(int key, int value) {
     Node* newNode = new Node();
     newNode->key = key;
@@ -32,7 +31,7 @@ Node* createNode(int key, int value) {
     return newNode;
 }
 
-// Инициализация кэша
+//инициализация кэша
 LRUCache* initCache(int capacity) {
     if (capacity <= 0) {
         cerr << "Емкость кэша должна быть положительной" << endl;
@@ -42,18 +41,18 @@ LRUCache* initCache(int capacity) {
     LRUCache* cache = new LRUCache();
     cache->capacity = capacity;
     cache->size = 0;
-    cache->head = createNode(-1, -1); // фиктивный головной узел
-    cache->tail = createNode(-1, -1); // фиктивный хвостовой узел
+    cache->head = createNode(-1, -1); //фиктивный головной узел
+    cache->tail = createNode(-1, -1); //фиктивный хвостовой узел
     cache->head->next = cache->tail;
     cache->tail->prev = cache->head;
-    
+
     // Предполагаем, что ключи не превышают 10000
     cache->maxKey = 10000;
     cache->keyMap = new Node*[cache->maxKey + 1];
     for (int i = 0; i <= cache->maxKey; i++) {
         cache->keyMap[i] = nullptr;
     }
-    
+
     return cache;
 }
 
@@ -96,7 +95,7 @@ void setValue(LRUCache* cache, int key, int value) {
         cerr << "Ключ вне допустимого диапазона" << endl;
         return;
     }
-    
+
     if (cache->keyMap[key] != nullptr) {
         // Ключ уже существует, обновляем значение и перемещаем в начало
         Node* node = cache->keyMap[key];
@@ -122,7 +121,7 @@ int getValue(LRUCache* cache, int key) {
     if (key < 0 || key > cache->maxKey) {
         return -1;
     }
-    
+
     if (cache->keyMap[key] != nullptr) {
         Node* node = cache->keyMap[key];
         moveToFront(cache, node);
@@ -160,7 +159,10 @@ int main() {
     }
 
     LRUCache* cache = initCache(cap);
-    vector<int> results; // Вектор для хранения результатов GET
+
+    // Массив для хранения результатов GET
+    int* results = new int[Q];
+    int resultCount = 0; // Счетчик результатов
 
     cout << "Введите запросы (SET x y или GET x):" << endl;
 
@@ -173,6 +175,7 @@ int main() {
             if (!(cin >> x >> y)) {
                 cerr << "Некорректные параметры для SET" << endl;
                 freeCache(cache);
+                delete[] results;
                 return 1;
             }
             setValue(cache, x, y);
@@ -181,26 +184,29 @@ int main() {
             if (!(cin >> x)) {
                 cerr << "Некорректный параметр для GET" << endl;
                 freeCache(cache);
+                delete[] results;
                 return 1;
             }
             int result = getValue(cache, x);
-            results.push_back(result); // Сохраняем результат
+            results[resultCount++] = result; // Сохраняем результат
         } else {
             cerr << "Неизвестная операция: " << operation << endl;
             freeCache(cache);
+            delete[] results;
             return 1;
         }
     }
 
     // Вывод всех результатов GET в конце
-    for (size_t i = 0; i < results.size(); i++) {
+    for (int i = 0; i < resultCount; i++) {
         cout << results[i];
-        if (i != results.size() - 1) {
+        if (i != resultCount - 1) {
             cout << " ";
         }
     }
     cout << endl;
 
     freeCache(cache);
+    delete[] results;
     return 0;
 }
