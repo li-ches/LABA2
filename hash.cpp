@@ -1,6 +1,5 @@
 #include <iostream>
 #include <string>
-#include <vector>
 
 using namespace std;
 
@@ -12,7 +11,7 @@ struct HashNode {
 };
 
 struct HashTableChaining {
-    vector<HashNode*> table;
+    HashNode** table;
     int size;
 };
 
@@ -24,7 +23,7 @@ struct HashEntry {
 };
 
 struct HashTableOpenAddressing {
-    vector<HashEntry> table;
+    HashEntry* table;
     int size;
 };
 
@@ -32,14 +31,17 @@ struct HashTableOpenAddressing {
 HashTableChaining createHashTableChaining(int size) {
     HashTableChaining ht;
     ht.size = size;
-    ht.table.resize(size, nullptr);
+    ht.table = new HashNode*[size];
+    for (int i = 0; i < size; i++) {
+        ht.table[i] = nullptr;
+    }
     return ht;
 }
 
 HashTableOpenAddressing createHashTableOpenAddressing(int size) {
     HashTableOpenAddressing ht;
     ht.size = size;
-    ht.table.resize(size);
+    ht.table = new HashEntry[size];
     for (int i = 0; i < size; i++) {
         ht.table[i].occupied = false;
     }
@@ -393,6 +395,17 @@ void manualHashTableOperations() {
             cout << "Неизвестная команда!" << endl;
         }
     }
+
+    for (int i = 0; i < htChain.size; i++) {
+        HashNode* current = htChain.table[i];
+        while (current != nullptr) {
+            HashNode* temp = current;
+            current = current->next;
+            delete temp;
+        }
+    }
+    delete[] htChain.table;
+    delete[] htOpen.table;
 }
 
 int main() {
