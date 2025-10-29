@@ -20,6 +20,7 @@ struct HashEntry {
     string key;
     string value;
     bool occupied;
+    bool deleted; // Флаг для пометки удаленных элементов
 };
 
 struct HashTableOpenAddressing {
@@ -44,6 +45,7 @@ HashTableOpenAddressing createHashTableOpenAddressing(int size) {
     ht.table = new HashEntry[size];
     for (int i = 0; i < size; i++) {
         ht.table[i].occupied = false;
+        ht.table[i].deleted = false;
     }
     return ht;
 }
@@ -52,7 +54,7 @@ HashTableOpenAddressing createHashTableOpenAddressing(int size) {
 int hashFunction(const string& key, int tableSize) {
     int hash = 0;
     for (char c : key) {
-        hash = (hash * 31 + abs(c)) % tableSize;
+        hash = (hash * 31 + abs(c)) % tableSize;//ASCII
     }
     return hash;
 }
@@ -88,6 +90,9 @@ void visualizeOpenAddressing(const HashTableOpenAddressing& ht) {
         if (ht.table[i].occupied) {
             isEmpty = false;
             cout << "[" << i << "]" << ht.table[i].key << "->" << ht.table[i].value << " ";
+        } else if (ht.table[i].deleted) {
+            isEmpty = false;
+            cout << "[" << i << "](удалено) ";
         }
     }
     if (isEmpty) {
@@ -189,20 +194,33 @@ void insertOpenAddressing(HashTableOpenAddressing& ht, const string& key, const 
         probes++;
         cout << "Проба " << probes << ": ячейка " << index;
 
-        if (!ht.table[index].occupied) {
+        if (!ht.table[index].occupied && !ht.table[index].deleted) {
             cout << " - свободна" << endl;
             ht.table[index].key = key;
             ht.table[index].value = value;
             ht.table[index].occupied = true;
+            ht.table[index].deleted = false;
             cout << "Размещено в ячейке " << index << endl;
             visualizeOpenAddressing(ht);
             return;
         }
 
-        if (ht.table[index].key == key) {
+        if (ht.table[index].occupied && ht.table[index].key == key) {
             cout << " - ключ есть" << endl;
             cout << "Обновлено: " << ht.table[index].value << "->" << value << endl;
             ht.table[index].value = value;
+            visualizeOpenAddressing(ht);
+            return;
+        }
+
+        // вставка в удаленную ячейку
+        if (ht.table[index].deleted) {
+            cout << " - удалена, можно использовать" << endl;
+            ht.table[index].key = key;
+            ht.table[index].value = value;
+            ht.table[index].occupied = true;
+            ht.table[index].deleted = false;
+            cout << "Размещено в удаленной ячейке " << index << endl;
             visualizeOpenAddressing(ht);
             return;
         }
@@ -230,16 +248,17 @@ bool deleteOpenAddressing(HashTableOpenAddressing& ht, const string& key) {
             cout << " - найден" << endl;
             cout << "Удален: " << key << "->" << ht.table[index].value << endl;
             ht.table[index].occupied = false;
+            ht.table[index].deleted = true;
             visualizeOpenAddressing(ht);
             return true;
         }
 
-        if (!ht.table[index].occupied) {
+        if (!ht.table[index].occupied && !ht.table[index].deleted) {
             cout << " - свободна" << endl;
             break;
         }
 
-        cout << " - занята" << endl;
+        cout << " - занята или удалена" << endl;
         index = (index + 1) % ht.size;
 
     } while (index != originalIndex);
@@ -265,12 +284,12 @@ string searchOpenAddressing(const HashTableOpenAddressing& ht, const string& key
             return ht.table[index].value;
         }
 
-        if (!ht.table[index].occupied) {
+        if (!ht.table[index].occupied && !ht.table[index].deleted) {
             cout << " - свободна" << endl;
             break;
         }
 
-        cout << " - занята" << endl;
+        cout << " - занята или удалена" << endl;
         index = (index + 1) % ht.size;
 
     } while (index != originalIndex);
@@ -318,6 +337,51 @@ bool areIsomorphicChaining(const string& str1, const string& str2) {
             }
         } else {
             insertChaining(reverseMapping, c2, c1);
+        }
+    }
+
+    cout << "ВСЕ ОТОБРАЖЕНИЯ КОРРЕКТНЫ - Строки изоморфны" << endl;
+    return true;
+}
+
+bool areIsomorphicOpenAddressing(const string& str1, const string& str2) {
+    if (str1.length() != str2.length()) {
+        cout << "ОШИБКА: Строки разной длины!" << endl;
+        cout << str1 << " (" << str1.length() << ") vs " << str2 << " (" << str2.length() << ")" << endl;
+        return false;
+    }
+
+    cout << "ПРОВЕРКА ИЗОМОРФНОСТИ - ОТКРЫТАЯ АДРЕСАЦИЯ" << endl;
+    cout << "Строка 1: " << str1 << endl;
+    cout << "Строка 2: " << str2 << endl;
+
+    HashTableOpenAddressing mapping = createHashTableOpenAddressing(256);
+    HashTableOpenAddressing reverseMapping = createHashTableOpenAddressing(256);
+
+    for (size_t i = 0; i < str1.length(); i++) {
+        string c1 = string(1, str1[i]);
+        string c2 = string(1, str2[i]);
+
+        cout << "Позиция " << i << ": '" << str1[i] << "' -> '" << str2[i] << "'" << endl;
+
+        string existingMapping = searchOpenAddressing(mapping, c1);
+        if (!existingMapping.empty()) {
+            if (existingMapping != c2) {
+                cout << "КОНФЛИКТ: '" << str1[i] << "' уже -> '" << existingMapping << "'" << endl;
+                return false;
+            }
+        } else {
+            insertOpenAddressing(mapping, c1, c2);
+        }
+
+        string existingReverseMapping = searchOpenAddressing(reverseMapping, c2);
+        if (!existingReverseMapping.empty()) {
+            if (existingReverseMapping != c1) {
+                cout << "КОНФЛИКТ: '" << str2[i] << "' уже -> '" << existingReverseMapping << "'" << endl;
+                return false;
+            }
+        } else {
+            insertOpenAddressing(reverseMapping, c2, c1);
         }
     }
 
@@ -379,14 +443,6 @@ void manualHashTableOperations() {
                 string result1 = searchChaining(htChain, key);
                 cout << endl;
                 string result2 = searchOpenAddressing(htOpen, key);
-
-                cout << "ИТОГ ПОИСКА " << key << ":" << endl;
-                cout << "Цепочки: ";
-                if (result1.empty()) cout << "не найден"; else cout << result1;
-                cout << endl;
-                cout << "Открытая адресация: ";
-                if (result2.empty()) cout << "не найден"; else cout << result2;
-                cout << endl;
             } else {
                 cout << "Ошибка формата! Используйте: SEARCH ключ" << endl;
             }
@@ -396,6 +452,7 @@ void manualHashTableOperations() {
         }
     }
 
+    // Освобождение памяти
     for (int i = 0; i < htChain.size; i++) {
         HashNode* current = htChain.table[i];
         while (current != nullptr) {
@@ -438,19 +495,17 @@ int main() {
                 continue;
             }
 
+            cout << "\n=== МЕТОД ЦЕПОЧЕК ===" << endl;
             bool resultChaining = areIsomorphicChaining(str1, str2);
-            bool resultOpenAddressing = areIsomorphicChaining(str1, str2);
+
+            cout << "\n=== ОТКРЫТАЯ АДРЕСАЦИЯ ===" << endl;
+            bool resultOpenAddressing = areIsomorphicOpenAddressing(str1, str2);
 
             cout << endl << "ФИНАЛЬНЫЕ РЕЗУЛЬТАТЫ:" << endl;
             cout << "Строка 1: " << str1 << endl;
             cout << "Строка 2: " << str2 << endl;
             cout << "Цепочки: " << (resultChaining ? "ИЗОМОРФНЫ" : "НЕ ИЗОМОРФНЫ") << endl;
             cout << "Открытая адресация: " << (resultOpenAddressing ? "ИЗОМОРФНЫ" : "НЕ ИЗОМОРФНЫ") << endl;
-            if (resultChaining == resultOpenAddressing) {
-                cout << "Оба метода согласны" << endl;
-            } else {
-                cout << "Методы расходятся" << endl;
-            }
         }
         else if (choice == "2") {
             manualHashTableOperations();
