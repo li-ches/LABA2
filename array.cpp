@@ -1,144 +1,160 @@
 #include <iostream>
 #include <string>
-
 using namespace std;
 
-// Структура для хранения результата проверки
+struct MyArray {
+    char* data;
+    int size;
+    int capacity;
+};
+
+void initArray(MyArray& arr, int cap = 8) {
+    arr.data = new char[cap];
+    arr.size = 0;
+    arr.capacity = cap;
+}
+//добавление элемента
+void pushBackArray(MyArray& arr, char c) {
+    if (arr.size >= arr.capacity) {
+        int newCap = arr.capacity * 2;
+        char* newData = new char[newCap];
+        for (int i = 0; i < arr.size; ++i)
+            newData[i] = arr.data[i];
+        delete[] arr.data;
+        arr.data = newData;
+        arr.capacity = newCap;
+    }
+    arr.data[arr.size++] = c;
+}
+//освобождение памяти
+void freeArray(MyArray& arr) {
+    delete[] arr.data;
+    arr.data = nullptr;
+    arr.size = 0;
+    arr.capacity = 0;
+}
+
+// Структура результата проверки
 struct PatternMatchResult {
     bool isMatch;
     string message;
 };
 
 // Функция для проверки соответствия строки шаблону
-PatternMatchResult matchPattern(const string& str, const string& pattern) {
-    PatternMatchResult result;
-    result.isMatch = false;
-
+PatternMatchResult matchPattern(const MyArray& str, const MyArray& pattern) {
+    PatternMatchResult res;
+    res.isMatch = false;
+//позиции
     int strPos = 0;
-    int patternPos = 0;
+    int patPos = 0;
     int starPos = -1;
     int matchPos = -1;
 
-    while (strPos < str.length()) {
-        // Если символы совпадают или в шаблоне '?'
-        if (patternPos < pattern.length() &&
-            (pattern[patternPos] == str[strPos] || pattern[patternPos] == '?')) {
+    while (strPos < str.size) {
+//'?':
+        if (patPos < pattern.size &&
+            (pattern.data[patPos] == str.data[strPos] || pattern.data[patPos] == '?')) {
             strPos++;
-            patternPos++;
+            patPos++;
         }
-        // Если встречаем '*'
-        else if (patternPos < pattern.length() && pattern[patternPos] == '*') {
-            starPos = patternPos;
+//'*'
+        else if (patPos < pattern.size && pattern.data[patPos] == '*') {
+            starPos = patPos;
             matchPos = strPos;
-            patternPos++;
+            patPos++;
         }
-        // Если был '*' и не совпало - возвращаемся
+//возврат к последней '*'
         else if (starPos != -1) {
-            patternPos = starPos + 1;
+            patPos = starPos + 1;
             matchPos++;
             strPos = matchPos;
         }
-        // Если не совпало и не было '*'
+
         else {
-            result.message = "Строка не соответствует шаблону";
-            return result;
+            res.message = "Строка не соответствует шаблону";
+            return res;
         }
     }
+//пропуск оставшихся '*'
+    while (patPos < pattern.size && pattern.data[patPos] == '*')
+        patPos++;
 
-    // Пропускаем оставшиеся '*' в шаблоне
-    while (patternPos < pattern.length() && pattern[patternPos] == '*') {
-        patternPos++;
-    }
-
-    // Если дошли до конца шаблона - совпадение
-    if (patternPos == pattern.length()) {
-        result.isMatch = true;
-        result.message = "Строка соответствует шаблону";
+    if (patPos == pattern.size) {
+        res.isMatch = true;
+        res.message = "Строка соответствует шаблону";
     } else {
-        result.message = "Строка не соответствует шаблону";
+        res.message = "Строка не соответствует шаблону";
     }
 
-    return result;
+    return res;
 }
 
-// Функция проверки корректности шаблона
-bool isValidPattern(const string& pattern) {
-    if (pattern.empty()) {
-        cout << "Ошибка: шаблон не может быть пустым" << endl;
+//Проверка корректности
+bool isValid(const string& s, const string& name) {
+    if (s.empty()) {
+        cout << "Ошибка: " << name << " не может быть пустой\n";
         return false;
     }
-
-    for (char c : pattern) {
+    for (char c : s) {
         if (c < 32 || c > 126) {
-            cout << "Ошибка: шаблон содержит недопустимый символ" << endl;
+            cout << "Ошибка: " << name << " содержит недопустимый символ\n";
             return false;
         }
     }
-
     return true;
 }
 
-// Функция проверки корректности строки
-bool isValidString(const string& str) {
-    if (str.empty()) {
-        cout << "Ошибка: строка не может быть пустой" << endl;
-        return false;
-    }
-
-    for (char c : str) {
-        if (c < 32 || c > 126) {
-            cout << "Ошибка: строка содержит недопустимый символ" << endl;
-            return false;
-        }
-    }
-
-    return true;
-}
-
+// Основная программа
 int main() {
-    cout << "=== Проверка соответствия строки шаблону ===" << endl;
-    cout << "Специальные символы:" << endl;
-    cout << "  ? - один любой символ" << endl;
-    cout << "  * - любая последовательность символов" << endl;
-    cout << "=============================================" << endl;
-    
+    cout << "=== Проверка строки по шаблону (с самописным массивом) ===\n";
+    cout << "Символы:\n"
+         << "  ? — любой один символ\n"
+         << "  * — любая последовательность символов\n";
+    cout << "===========================================================\n";
+
     while (true) {
-        cout << "\nМеню:" << endl;
-        cout << "1. Проверить соответствие строки шаблону" << endl;
-        cout << "0. Выход" << endl;
-        cout << "Выберите операцию: ";
+        cout << "\nМеню:\n";
+        cout << "1. Проверить строку\n";
+        cout << "0. Выход\n";
+        cout << "Выбор: ";
 
         string choice;
         getline(cin, choice);
 
         if (choice == "0") {
-            cout << "Выход из программы." << endl;
+            cout << "Выход из программы.\n";
             break;
         }
         else if (choice == "1") {
-            string str, pattern;
+            string s, p;
             cout << "Введите строку: ";
-            getline(cin, str);
-
+            getline(cin, s);
             cout << "Введите шаблон: ";
-            getline(cin, pattern);
+            getline(cin, p);
 
-            // Проверка корректности ввода
-            if (!isValidString(str) || !isValidPattern(pattern)) {
-                cout << "Попробуйте снова." << endl;
+            if (!isValid(s, "строка") || !isValid(p, "шаблон"))
                 continue;
-            }
 
-            // Проверка соответствия
-            PatternMatchResult result = matchPattern(str, pattern);
+            // Переносим в MyArray
+            MyArray str, pattern;
+            initArray(str);
+            initArray(pattern);
+            for (char c : s) pushBackArray(str, c);
+            for (char c : p) pushBackArray(pattern, c);
 
-            cout << "\nРезультат проверки:" << endl;
-            cout << "Строка: \"" << str << "\"" << endl;
-            cout << "Шаблон: \"" << pattern << "\"" << endl;
-            cout << "Результат: " << result.message << endl;
+            // Проверка
+            PatternMatchResult res = matchPattern(str, pattern);
+            cout << "\nРезультат:\n";
+            cout << "  Строка: \"" << s << "\"\n";
+            cout << "  Шаблон: \"" << p << "\"\n";
+            cout << "  " << res.message << endl;
+
+            // Очистка
+            freeArray(str);
+            freeArray(pattern);
         }
         else {
-            cout << "Неизвестная операция. Попробуйте снова." << endl;
+            cout << "Неизвестная команда.\n";
         }
     }
 
